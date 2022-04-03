@@ -16,13 +16,12 @@ LDFLAGS := -L ${LIBCSV_DIR}lib -Wl,-R,${LIBCSV_DIR}lib -static # Statically link
 SRC_FILES := $(wildcard ${SRC_DIR}*.c)
 OBJ_FILES := $(patsubst ${SRC_DIR}%.c,${BUILD_DIR}%.o,${SOURCES})
 
-TARGETS := main testbench missing_id
+TARGETS := main testbench
 
 # Make the missing_id target also rely on the dynamic_long_array
 all : ${TARGETS}
 
 main : ${BUILD_DIR}missing_id.o ${BUILD_DIR}dynamic_long_array.o
-missing_id : ${BUILD_DIR}missing_id.o ${BUILD_DIR}dynamic_long_array.o
 
 # Can't use implicit rules because of build and src directories
 # The use of : % : is done for implicit pattern substitution of expanding targets to another target
