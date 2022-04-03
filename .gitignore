@@ -1,4 +1,8 @@
 build/
-bin/
 sample-data/
 libcsv_binaries/
+
+# Different executables
+testbench
+missing_id
+main

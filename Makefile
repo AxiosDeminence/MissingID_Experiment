@@ -1,31 +1,34 @@
 .PHONY: missing_ids
 
-SRC_DIR := ./src
-BUILD_DIR  = ./build
+SRC_DIR := ./src/
+BUILD_DIR  := ./build/
 
 ACCUM_FILE := rolls-1
 # Replace it with where the libcsv directory is saved
-LIBCSV_DIR := $${HOME}/libcsv-3.0.3
+LIBCSV_DIR := $${HOME}/libcsv-3.0.3/
 
-INCLUDES := -I${LIBCSV_DIR}/include # Add libcsv include directory
+INCLUDES := -I${LIBCSV_DIR}include # Add libcsv include directory
 CFLAGS := -Wall -g ${INCLUDES} -MMD -std=c89 -Werror-implicit-function-declaration # Compile with these flags. Use gnu99 because of argp
 # Linking libraries for every file does not actually do any harm since if the library is not used, it is not added.
 LDLIBS := -lcsv # Link libraries for final compilation
-LDFLAGS := -L ${LIBCSV_DIR}/lib -Wl,-R,${LIBCSV_DIR}/lib -static # Statically link so executables can be moved and link files as needed
+LDFLAGS := -L ${LIBCSV_DIR}lib -Wl,-R,${LIBCSV_DIR}lib -static # Statically link so executables can be moved and link files as needed
 
-SRC_FILES := $(wildcard ${SRC_DIR}/*.c)
-OBJ_FILES := $(patsubst ${SRC_DIR}/%.c,${BUILD_DIR}/%.o,${SOURCES})
+SRC_FILES := $(wildcard ${SRC_DIR}*.c)
+OBJ_FILES := $(patsubst ${SRC_DIR}%.c,${BUILD_DIR}%.o,${SOURCES})
 
 TARGETS := main testbench missing_id
 
 # Make the missing_id target also rely on the dynamic_long_array
-missing_id : ${BUILD_DIR}/missing_id.o ${BUILD_DIR}/dynamic_long_array.o
+all : ${TARGETS}
+
+missing_id : ${BUILD_DIR}missing_id.o ${BUILD_DIR}dynamic_long_array.o
 
 # Can't use implicit rules because of build and src directories
-${TARGETS}: % : ${BUILD_DIR}/%.o
-	${CC} ${LDFLAGS} $^ ${LDLIBS} -o $@
+# The use of : % : is done for implicit pattern substitution of expanding targets to another target
+${TARGETS}: % : ${BUILD_DIR}%.o
+	${CC} ${LDFLAGS} $^ ${LDLIBS} -o ${BIN_DIR}$@
 
-${BUILD_DIR}/%.o : ${SRC_DIR}/%.c 
+${BUILD_DIR}%.o : ${SRC_DIR}%.c 
 	${CC} ${CFLAGS} -c $^ -o $@
 
 csvvalid : csvvalid.c
