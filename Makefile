@@ -21,6 +21,7 @@ TARGETS := main testbench missing_id
 # Make the missing_id target also rely on the dynamic_long_array
 all : ${TARGETS}
 
+main : ${BUILD_DIR}missing_id.o ${BUILD_DIR}dynamic_long_array.o
 missing_id : ${BUILD_DIR}missing_id.o ${BUILD_DIR}dynamic_long_array.o
 
 # Can't use implicit rules because of build and src directories

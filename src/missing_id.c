@@ -47,7 +47,7 @@ long missing_number(long *array, size_t len) {
        * into a negative. */
       array[first_pos++] = tmp;
     }
-  }
+ }
 
   /* unsigned int pos_len = len - first_pos; */
   for (i = first_pos; i < len; ++i) {
@@ -84,7 +84,10 @@ void field_callback(void *s, size_t len, void *data) {
     return;
   }
 
-  int retval = append(strtol((char *)s, NULL, 10), &(info->array));
+  /* Technically if ignore_headers is not set, then it will still work since
+   * strtol will return 0 when it reaches the header as long as the header does
+   * not start with a numeric value */
+  int retval = append(strtol((char *)s, NULL, 10), info->array);
   if (retval != 0) {
     fprintf(stderr, "Some error occurred while reading a field: %d", retval);
     exit(EXIT_FAILURE);
@@ -123,8 +126,8 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
 
   size_t i;
   for (i = 0; i < len; ++i) {
-    struct parser_info parser_info = {dynamic_array, ignore_headers, columns[i],
-                                      0, 0};
+    struct parser_info parser_info = {&dynamic_array, ignore_headers,
+                                      columns[i], 0, 0};
     /* filenames should be null terminated */
     FILE* file = fopen(filenames[i], "r");
     if (file == NULL) {
@@ -143,28 +146,4 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
     }
   }
   return dynamic_array;
-}
-
-
-int main(int argc, char *argv[]) {
-  char **filenames = &argv[1];
-  long *columns = calloc(2, sizeof(long));
-  if (columns == NULL) {
-    return EXIT_FAILURE;
-  }
-  size_t len = 2;
-  /* Casting and signature function prevents the pointer to the begining of a
-   * string being overwritten or characters themselves being overwitten. */
-  int ret_val;
-  struct dynamic_long_array dynamic_array = compile_ids_from_files(
-      (const char* const*)filenames, columns, len, 1, '"', '\t', 50, &ret_val);
-  if (ret_val != kOk) {
-   return ret_val;
-  }
-  size_t i;
-  printf("%zu\n", dynamic_array.len);
-  for (i = 0; i < dynamic_array.len; ++i) {
-    printf("%zu\n", dynamic_array.array[i]);
-  }
-  return EXIT_SUCCESS;
 }

@@ -2,6 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "dynamic_long_array.h"
+#include "missing_id.h"
+
 /* Prints the gaps between IDs of a given formatted file. Assumes that each
  * line, has the same number of features and is separated by the same delimiter.
  * Additionally assumes that the ID is the same feature and can be represented
@@ -209,6 +212,17 @@ int main(int argc, char *argv[]) {
   struct arguments arguments;
 
   argp_parse( &argp, argc, argv, 0, 0, &arguments );
+
+  int ret_val = 0;
+  struct dynamic_long_array dynamic_array = compile_ids_from_files(
+      (const char* const *)arguments.input, arguments.columns,
+      arguments.input_file_length, arguments.ignore_headers, arguments.quote,
+      arguments.token, 100, &ret_val);
+  if (ret_val != 0) {
+    exit(EXIT_FAILURE);
+  }
+  printf("Missing id: %ld\n", missing_number(dynamic_array.array,
+        dynamic_array.len));
 
   FreeArguments(&arguments);
 

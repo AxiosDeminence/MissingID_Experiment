@@ -4,7 +4,7 @@
 #include "dynamic_long_array.h"
 
 struct parser_info {
-  struct dynamic_long_array array;
+  struct dynamic_long_array *array;
   int ignore_headers;
   long id_column;
 

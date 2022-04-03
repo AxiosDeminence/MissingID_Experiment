@@ -11,8 +11,6 @@ int append(long element, struct dynamic_long_array *dynamic_array) {
   }
 
   dynamic_array->array[dynamic_array->len++] = element;
-  printf("len: %zu | capacity: %zu\n", dynamic_array->len,
-      dynamic_array->capacity);
   return 0;
 }
 
