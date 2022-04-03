@@ -3,7 +3,7 @@
 #include "dynamic_long_array.h"
 
 int append(long element, struct dynamic_long_array *dynamic_array) {
-  if (!at_capacity(dynamic_array)) {
+  if (at_capacity(dynamic_array)) {
     int result = extend_array(dynamic_array);
     if (result != 0) {
       return result;
@@ -11,15 +11,17 @@ int append(long element, struct dynamic_long_array *dynamic_array) {
   }
 
   dynamic_array->array[dynamic_array->len++] = element;
+  printf("len: %zu | capacity: %zu\n", dynamic_array->len,
+      dynamic_array->capacity);
   return 0;
 }
 
 int at_capacity(struct dynamic_long_array *dynamic_array) {
-  return dynamic_array->len = dynamic_array->capacity;
+  return dynamic_array->len == dynamic_array->capacity;
 }
 
 int extend_array(struct dynamic_long_array *dynamic_array) {
-  if (!at_capacity(dynamic_array) ||
+  if (at_capacity(dynamic_array) &&
       dynamic_array->capacity * 2 < dynamic_array->capacity) {
     /* If the array is not at capacity or the size would overflow*/
     fprintf(stderr, "Increasing capacity past %zu will exceed system's"
@@ -27,7 +29,7 @@ int extend_array(struct dynamic_long_array *dynamic_array) {
                     dynamic_array->capacity);
     return -1;
   }
-  dynamic_array->capacity *= 2; 
+  dynamic_array->capacity *= 2;
   long *new_ptr = realloc(dynamic_array->array,
                           sizeof(long) * dynamic_array->capacity);
   if (new_ptr == NULL) {
