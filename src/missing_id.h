@@ -21,10 +21,12 @@ enum Err {
 
 long missing_number(long *array, size_t len);
 
-int add_ids_from_file(const char *filename, struct parser_info info);
+void field_callback(void *s, size_t len, void *data);
 
-int compile_ids_from_files(const char * const* filenames, const long *columns,
-    size_t len, int ignore_headers, unsigned char quote, unsigned char token,
-    size_t starting_capacity);
+void record_callback(int c, void *data);
+
+struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
+    const long *columns, size_t len, int ignore_headers, unsigned char quote,
+    unsigned char token, size_t starting_capacity, int *err_no);
 
 #endif

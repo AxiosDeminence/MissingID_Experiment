@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "missing_id.h"
 #include "dynamic_long_array.h"
+#include "csv.h"
 
 long missing_number(long *array, size_t len) {
   /* Define n = array_len and [-1, k] to be the range of elements.
@@ -74,39 +75,74 @@ long missing_number(long *array, size_t len) {
   return minimum_missing_positive;
 } 
 
-int add_ids_from_file(const char *filename, struct parser_info info) {
-  /* Assume array_len = n and the length of ids in filename = m. We must
-   * traverse through the entirety of filename such that O(m). */
-  FILE* file;
-  if ((file = fopen(filename, "r")) == NULL) {
-    fprintf(stderr, "Error opening file: %s\n", filename);
-    return kFileNotExist;
+/* We use the strtol function here which requires a null terminating character.
+ * Therefore, do NOT use it without specifying the CSV_APPEND_NULL option */
+void field_callback(void *s, size_t len, void *data) {
+  struct parser_info *info = (struct parser_info *)data;
+  if ((info->ignore_headers && !info->past_header) ||
+       info->current_column++ != info->id_column) {
+    return;
   }
 
-  return kOk;
+  int retval = append(strtol((char *)s, NULL, 10), &(info->array));
+  if (retval != 0) {
+    fprintf(stderr, "Some error occurred while reading a field: %d", retval);
+    exit(EXIT_FAILURE);
+  }
 }
 
-int compile_ids_from_files(const char* const* filenames, const long *columns,
-    size_t len, int ignore_headers, unsigned char quote, unsigned char token,
-    size_t starting_capacity) {  
-  
-  size_t i;
-  int err_no = 0;
+void record_callback(int c, void *data) {
+  /* c here is either the line terminator unsigned char or -1 if the final
+   * record was never line terminated, either way it isn't used */
+  struct parser_info *info = (struct parser_info *)data;
+  info->past_header = 1;
+  info->current_column = 0;
+}  
+
+struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
+    const long *columns, size_t len, int ignore_headers, unsigned char quote,
+    unsigned char token, size_t starting_capacity, int *err_no) {  
+ 
+  *err_no = 0;
   struct dynamic_long_array dynamic_array = create_long_dynamic_array(
-      starting_capacity, &err_no);
-  if (err_no != 0) {
-    return err_no;
+      starting_capacity, err_no);
+  if (*err_no != 0) {
+    return dynamic_array;
   }
 
+  struct csv_parser p;
+  char buf[1024];
+  size_t bytes_read;
+
+  if (csv_init(&p, CSV_STRICT & CSV_APPEND_NULL & CSV_EMPTY_IS_NULL) != 0) {
+    fprintf(stderr, "Error creating csv parser\n");
+    *err_no = 1;
+  }
+  csv_set_delim(&p, token);
+  csv_set_quote(&p, quote);
+
+  size_t i;
   for (i = 0; i < len; ++i) {
     struct parser_info parser_info = {dynamic_array, ignore_headers, columns[i],
                                       0, 0};
-    int result = add_ids_from_file(filenames[i], parser_info);
-    if (result != kOk) {
-      return result;
+    /* filenames should be null terminated */
+    FILE* file = fopen(filenames[i], "r");
+    if (file == NULL) {
+      fprintf(stderr, "Error opening file: %s\n", filenames[i]);
+      *err_no = 2;
+      return dynamic_array;
+    }
+    while ((bytes_read=fread(buf, 1, 1024, file)) > 0) {
+      if (csv_parse(&p, buf, bytes_read, field_callback, record_callback,
+            &parser_info) != bytes_read) {
+        fprintf(stderr, "Error while parsing file: %s\n",
+            csv_strerror(csv_error(&p)));
+        *err_no = 3;
+        return dynamic_array;
+      }
     }
   }
-  return kOk;
+  return dynamic_array;
 }
 
 
@@ -119,10 +155,16 @@ int main(int argc, char *argv[]) {
   size_t len = 2;
   /* Casting and signature function prevents the pointer to the begining of a
    * string being overwritten or characters themselves being overwitten. */
-  int ret_val = compile_ids_from_files((const char* const*)filenames, columns,
-                                       len, 0, '"', ',', 50);
+  int ret_val;
+  struct dynamic_long_array dynamic_array = compile_ids_from_files(
+      (const char* const*)filenames, columns, len, 1, '"', '\t', 50, &ret_val);
   if (ret_val != kOk) {
    return ret_val;
-  } 
+  }
+  size_t i;
+  printf("%zu\n", dynamic_array.len);
+  for (i = 0; i < dynamic_array.len; ++i) {
+    printf("%zu\n", dynamic_array.array[i]);
+  }
   return EXIT_SUCCESS;
 }
