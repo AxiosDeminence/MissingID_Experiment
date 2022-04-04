@@ -1,48 +1,41 @@
-.PHONY: missing_ids
+.PHONY: missing_ids setup
 
-SRC_DIR := ./src/
-BUILD_DIR  := ./build/
+SRC_DIR := ./src
+BUILD_DIR  := ./build
+INCLUDE_DIR := ./include
 
 ACCUM_FILE := rolls-1
 # Replace it with where the libcsv directory is saved
-LIBCSV_DIR := $${HOME}/libcsv-3.0.3/
+LIBCSV_DIR := $${HOME}/libcsv-3.0.3
 
-INCLUDES := -I${LIBCSV_DIR}include # Add libcsv include directory
-CFLAGS := -Wall -g ${INCLUDES} -MMD -std=c89 -Werror-implicit-function-declaration # Compile with these flags. Use gnu99 because of argp
+INCLUDES := -I${LIBCSV_DIR}/include -I$(INCLUDE_DIR)# Add libcsv include directory
+CPPFLAGS := -MMD -MP
+CFLAGS := -Wall -g ${INCLUDES} -std=c89 -Werror-implicit-function-declaration # Compile with these flags. Use gnu99 because of argp
 # Linking libraries for every file does not actually do any harm since if the library is not used, it is not added.
 LDLIBS := -lcsv # Link libraries for final compilation
-LDFLAGS := -L ${LIBCSV_DIR}lib -Wl,-R,${LIBCSV_DIR}lib -static # Statically link so executables can be moved and link files as needed
+LDFLAGS := -L ${LIBCSV_DIR}/lib -Wl,-R,${LIBCSV_DIR}/lib -static # Statically link so executables can be moved and link files as needed
 
-SRC_FILES := $(wildcard ${SRC_DIR}*.c)
-OBJ_FILES := $(patsubst ${SRC_DIR}%.c,${BUILD_DIR}%.o,${SOURCES})
+SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES := $(SRC_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+DEPS := $(OBJS:.o=.d)
+# OBJ_FILES := $(patsubst ${SRC_DIR}/%.c,${BUILD_DIR}/%.o,${SOURCE})
 
-TARGETS := main testbench
+TARGETS := main
 
-# Make the missing_id target also rely on the dynamic_long_array
-all : ${TARGETS}
-
-main : ${BUILD_DIR}missing_id.o ${BUILD_DIR}dynamic_long_array.o
+all : $(TARGETS)
 
 # Can't use implicit rules because of build and src directories
 # The use of : % : is done for implicit pattern substitution of expanding targets to another target
-${TARGETS}: % : ${BUILD_DIR}%.o
-	${CC} ${LDFLAGS} $^ ${LDLIBS} -o ${BIN_DIR}$@
+$(TARGETS): $(OBJ_FILES)
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-${BUILD_DIR}%.o : ${SRC_DIR}%.c 
-	${CC} ${CFLAGS} -c $^ -o $@
+$(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CPP_FLAGS) $(CFLAGS) -c $< -o $@
 
-csvvalid : csvvalid.c
-	${CC} ${CFLAGS} -c $<
-	${CC} ${LDFLAGS} csvvalid.o ${LDLIBS} -o $@ # gcc ${BUILD_OPTS} -o csvtest -L${libcsv_DIR}/lib csvtest.o -lcsv -Wl,-R${libcsv_DIR}/lib
+setup:
+	mkdir -p ./src ./build ./include
 
-csvtest : csvtest.c
-	${CC} ${CFLAGS} -c $<
-	${CC} ${LDFLAGS} csvtest.o ${LDLIBS} -o $@ # gcc ${BUILD_OPTS} -o csvtest -L${libcsv_DIR}/lib csvtest.o -lcsv -Wl,-R${libcsv_DIR}/lib
-
-csvfix : csvfix.c
-	gcc ${BUILD_OPTS} -c -I${libcsv_DIR}/include csvfix.c
-	gcc ${BUILD_OPTS} -o csvfix -L${libcsv_DIR}/lib csvfix.o -lcsv -Wl,-R${libcsv_DIR}/lib
-	
 missing_ids: $(accum_file).tsv working.tsv
 # Means the following
 # 1) Traverse the rolls-1.tsv and working.tsv files by lines
@@ -67,3 +60,5 @@ merge_work: $(accum_file).tsv working.tsv
 
 merge_complete:
 	awk '(NR==1) || (FNR > 1)' rolls-*.tsv | sort -nu > rolls_total.tsv
+
+-include $(DEPS)
