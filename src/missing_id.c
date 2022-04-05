@@ -38,6 +38,7 @@ long missing_number(long *array, size_t len) {
   
   size_t i = 0;
   size_t first_pos = 0;
+  size_t minimum_missing_positive;
   /* Push all of the non-positive numbers to the left */
   for (i = 0; i < len; ++i) {
     if (array[i] < 1) {
@@ -60,7 +61,7 @@ long missing_number(long *array, size_t len) {
     }
   }
 
-  long minimum_missing_positive = len - first_pos + 1;
+  minimum_missing_positive = len - first_pos + 1;
   for (i = first_pos; i < len; ++i) {
     /* If the elmeent at index i is still positive, it was not found in the
      * array */
@@ -79,6 +80,7 @@ long missing_number(long *array, size_t len) {
  * Therefore, do NOT use it without specifying the CSV_APPEND_NULL option */
 void field_callback(void *s, size_t len, void *data) {
   struct parser_info *info = (struct parser_info *)data;
+  int retval;
   if ((info->ignore_headers && !info->past_header) ||
        info->current_column++ != info->id_column) {
     return;
@@ -87,7 +89,8 @@ void field_callback(void *s, size_t len, void *data) {
   /* Technically if ignore_headers is not set, then it will still work since
    * strtol will return 0 when it reaches the header as long as the header does
    * not start with a numeric value */
-  int retval = append(strtol((char *)s, NULL, 10), info->array);
+  retval = append(strtol((char *)s, NULL, 10), info->array);
+
   if (retval != 0) {
     fprintf(stderr, "Some error occurred while reading a field: %d", retval);
     exit(EXIT_FAILURE);
@@ -105,17 +108,16 @@ void record_callback(int c, void *data) {
 struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
     const long *columns, size_t len, int ignore_headers, unsigned char quote,
     unsigned char token, size_t starting_capacity, int *err_no) {  
- 
+  struct dynamic_long_array dynamic_array;
+  struct csv_parser p;
+  char buf[1024];
+  size_t bytes_read, i;
+
   *err_no = 0;
-  struct dynamic_long_array dynamic_array = create_long_dynamic_array(
-      starting_capacity, err_no);
+  dynamic_array = create_long_dynamic_array(starting_capacity, err_no);
   if (*err_no != 0) {
     return dynamic_array;
   }
-
-  struct csv_parser p;
-  char buf[1024];
-  size_t bytes_read;
 
   if (csv_init(&p, CSV_STRICT & CSV_APPEND_NULL & CSV_EMPTY_IS_NULL) != 0) {
     fprintf(stderr, "Error creating csv parser\n");
@@ -124,12 +126,17 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
   csv_set_delim(&p, token);
   csv_set_quote(&p, quote);
 
-  size_t i;
   for (i = 0; i < len; ++i) {
-    struct parser_info parser_info = {&dynamic_array, ignore_headers,
-                                      columns[i], 0, 0};
+    struct parser_info parser_info;
+    FILE *file;
+
+    parser_info.array = &dynamic_array;
+    parser_info.ignore_headers = ignore_headers;
+    parser_info.id_column = columns[i];
+    parser_info.past_header = 0;
+    parser_info.current_column = 0;
     /* filenames should be null terminated */
-    FILE* file = fopen(filenames[i], "r");
+    file = fopen(filenames[i], "r");
     if (file == NULL) {
       fprintf(stderr, "Error opening file: %s\n", filenames[i]);
       *err_no = 2;

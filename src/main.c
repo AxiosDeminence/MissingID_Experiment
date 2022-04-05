@@ -86,6 +86,8 @@ parse_opt (int key, char *arg, struct argp_state *state) {
       arguments->column_specify_length = 0;
       break;
     case 'q': case 't':
+    {
+      char special_char;
       /* Only accept one character strings (libcsv limitation). Binary data
        * allowed. Prevent use newline/carriage returns (needed to delimit rows).
        * Also prevent empty input. Due to limitations of argp, we will not check
@@ -94,7 +96,7 @@ parse_opt (int key, char *arg, struct argp_state *state) {
         FreeArguments(arguments);
         argp_error(state, "Quote/Delimiter may not be empty");
       }
-      unsigned char special_char = arg[0];
+      special_char = arg[0];
 
       switch (special_char) {
         case '\n':
@@ -112,6 +114,7 @@ parse_opt (int key, char *arg, struct argp_state *state) {
           break;
       }
       break;
+    }
     case 'h':
       arguments->ignore_headers = 1;
       break;
@@ -121,7 +124,7 @@ parse_opt (int key, char *arg, struct argp_state *state) {
       break;
     case 'i':
     case ARGP_KEY_ARG:
-      ;
+    {
       /* Try to open the file specified in the argument. If it does not exist
        * then it is considered as an error. */
       FILE *file;
@@ -137,8 +140,9 @@ parse_opt (int key, char *arg, struct argp_state *state) {
           (arguments->input_file_length + 1) * sizeof(char *));
       arguments->input[arguments->input_file_length++] = arg;
       break;
+    }
     case 'c':
-      ;
+    {
       /* Since arg is a pointer to the beginning of a string, then we can just
        * use that and tokenize it. */
       char *checker = strtok(arg, " ");
@@ -155,6 +159,7 @@ parse_opt (int key, char *arg, struct argp_state *state) {
         checker = strtok(NULL, " ");
       }
       break;
+    }
     case ARGP_KEY_END:
       if (arguments->input == NULL) {
         FreeArguments(arguments);
@@ -177,9 +182,11 @@ parse_opt (int key, char *arg, struct argp_state *state) {
         arguments->columns[0] = 0;
       }
       if (arguments->column_specify_length == 1) {
+        long *new_columns;
+        unsigned int i;
         /* If only one column is specified, make sure it's used for all files */
         arguments->column_specify_length = arguments->input_file_length;
-        long *new_columns = realloc(arguments->columns,
+        new_columns = realloc(arguments->columns,
             sizeof(long) * arguments->column_specify_length);
         if (new_columns == NULL) {
           FreeArguments(arguments);
@@ -187,7 +194,6 @@ parse_opt (int key, char *arg, struct argp_state *state) {
         }
         arguments->columns = new_columns;
 
-        unsigned int i;
         for (i = 1; i < arguments->input_file_length; ++i) {
           arguments->columns[i] = arguments->columns[0];
         }
@@ -210,14 +216,14 @@ static struct argp argp = { options, parse_opt, arg_docs, doc };
 
 int main(int argc, char *argv[]) {
   struct arguments arguments;
+  struct dynamic_long_array dynamic_array;
+  int ret_val = 0;
 
   argp_parse( &argp, argc, argv, 0, 0, &arguments );
 
-  int ret_val = 0;
-  struct dynamic_long_array dynamic_array = compile_ids_from_files(
-      (const char* const *)arguments.input, arguments.columns,
-      arguments.input_file_length, arguments.ignore_headers, arguments.quote,
-      arguments.token, 100, &ret_val);
+  dynamic_array = compile_ids_from_files((const char* const *)arguments.input,
+      arguments.columns, arguments.input_file_length, arguments.ignore_headers,
+      arguments.quote, arguments.token, 100, &ret_val);
   if (ret_val != 0) {
     exit(EXIT_FAILURE);
   }

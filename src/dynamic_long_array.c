@@ -19,21 +19,22 @@ int at_capacity(struct dynamic_long_array *dynamic_array) {
 }
 
 int extend_array(struct dynamic_long_array *dynamic_array) {
+  long *new_ptr;
   if (at_capacity(dynamic_array) &&
       dynamic_array->capacity * 2 < dynamic_array->capacity) {
     /* If the array is not at capacity or the size would overflow*/
-    fprintf(stderr, "Increasing capacity past %zu will exceed system's"
+    fprintf(stderr, "Increasing capacity past %lu will exceed system's"
                     "implementation of size_t causing an overflow\n",
                     dynamic_array->capacity);
     return -1;
   }
   dynamic_array->capacity *= 2;
-  long *new_ptr = realloc(dynamic_array->array,
-                          sizeof(long) * dynamic_array->capacity);
+  new_ptr = realloc(dynamic_array->array,
+      sizeof(long) * dynamic_array->capacity);
   if (new_ptr == NULL) {
     /* If there were some issue with expanding the dynamic array */
     fprintf(stderr, "Error reallocating dynamic long array with new capacity"
-                    "%zu\n", dynamic_array->capacity);
+                    "%lu\n", dynamic_array->capacity);
     return 1;
   }
   dynamic_array->array = new_ptr;
@@ -43,15 +44,20 @@ int extend_array(struct dynamic_long_array *dynamic_array) {
 struct dynamic_long_array create_long_dynamic_array(size_t initial_capacity,
                                                     int *err_no) {
   long *underlying_array = calloc(initial_capacity, sizeof(long));
-  struct dynamic_long_array dynamic_array = {
-    underlying_array, 0, initial_capacity
-  };
+  struct dynamic_long_array dynamic_array;
+
+  /* underlying_array = calloc(initial_capacity, sizeof(long)); */
   if (underlying_array == NULL) {
     fprintf(stderr, "Failed creating dynamic array with initial capacity of"
-                    "%zu\n", initial_capacity);    
+                    "%lu\n", initial_capacity);    
     *err_no = 1;
   } else {
     *err_no = 0;
   }
+  
+  dynamic_array.array = underlying_array;
+  dynamic_array.len = 0;
+  dynamic_array.capacity = initial_capacity;
+
   return dynamic_array; 
 }

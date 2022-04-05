@@ -1,6 +1,7 @@
 .PHONY: missing_ids setup
 
 SRC_DIR := ./src
+DEP_DIR := ./dep
 BUILD_DIR  := ./build
 INCLUDE_DIR := ./include
 
@@ -8,33 +9,48 @@ ACCUM_FILE := rolls-1
 # Replace it with where the libcsv directory is saved
 LIBCSV_DIR := $${HOME}/libcsv-3.0.3
 
-INCLUDES := -I${LIBCSV_DIR}/include -I$(INCLUDE_DIR)# Add libcsv include directory
-CPPFLAGS := -MMD -MP
-CFLAGS := -Wall -g ${INCLUDES} -std=c89 -Werror-implicit-function-declaration # Compile with these flags. Use gnu99 because of argp
+# Add libcsv and include directory
+INCLUDES := -I${LIBCSV_DIR}/include -I$(INCLUDE_DIR)
+
+# Making sure this does not get immediately computed. Use automatic dependency generation for header files as well
+CPPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$*.d
+
+# Enable all warnings as errors except unused params and missing field initializers (library functions and initializers)
+CFLAGS := -O2 -Wall -Wextra -Wpedantic -g -ansi -Werror -Wno-error=unused-parameter -Wno-error=missing-field-initializers $(INCLUDES)
+
 # Linking libraries for every file does not actually do any harm since if the library is not used, it is not added.
 LDLIBS := -lcsv # Link libraries for final compilation
-LDFLAGS := -L ${LIBCSV_DIR}/lib -Wl,-R,${LIBCSV_DIR}/lib -static # Statically link so executables can be moved and link files as needed
+LDFLAGS := -L ${LIBCSV_DIR}/lib -Wl,-R,${LIBCSV_DIR}/lib # Statically link so executables can be moved and link files as needed
 
-SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
-OBJ_FILES := $(SRC_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-DEPS := $(OBJS:.o=.d)
-# OBJ_FILES := $(patsubst ${SRC_DIR}/%.c,${BUILD_DIR}/%.o,${SOURCE})
+# Different
+SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+DEP_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
 
-TARGETS := main
+all : main
 
-all : $(TARGETS)
+$(OBJ_FILES) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c $(DEP_DIR)/%.d | $(BUILD_DIR) $(DEP_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-# Can't use implicit rules because of build and src directories
-# The use of : % : is done for implicit pattern substitution of expanding targets to another target
-$(TARGETS): $(OBJ_FILES)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+$(DEP_FILES): ;
 
-$(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
-	mkdir -p $(BUILD_DIR)
-	$(CC) $(CPP_FLAGS) $(CFLAGS) -c $< -o $@
+# Can't use implicit rules because of build and src directories.
+# Must be in this order for proper linking.
+main : $(BUILD_DIR)/main.o $(BUILD_DIR)/dynamic_long_array.o $(BUILD_DIR)/missing_id.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+# Creation of folders if they do not exist
+$(BUILD_DIR) : ; @mkdir -p $@
+$(DEP_DIR) : ; @mkdir -p $@
 
 setup:
 	mkdir -p ./src ./build ./include
+	libcsv-3.0.3/configure && make -C 
+
+clean:
+	@rm -r ./build/*
+
+-include $(DEP_FILES)
 
 missing_ids: $(accum_file).tsv working.tsv
 # Means the following
@@ -60,5 +76,3 @@ merge_work: $(accum_file).tsv working.tsv
 
 merge_complete:
 	awk '(NR==1) || (FNR > 1)' rolls-*.tsv | sort -nu > rolls_total.tsv
-
--include $(DEPS)
