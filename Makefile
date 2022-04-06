@@ -44,8 +44,8 @@ $(BUILD_DIR) : ; @mkdir -p $@
 $(DEP_DIR) : ; @mkdir -p $@
 
 setup:
-	mkdir -p ./src ./build ./include
-	libcsv-3.0.3/configure && make -C 
+	@mkdir -p ./src ./build ./include
+	@libcsv-3.0.3/configure && make -C 
 
 clean:
 	@rm -r ./build/*
