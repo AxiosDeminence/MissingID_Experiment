@@ -1,6 +1,7 @@
 build/
 sample-data/
 libcsv_binaries/
+node_modules/
 
 # Different executables
 testbench
