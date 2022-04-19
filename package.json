@@ -3,9 +3,12 @@
   "description": "",
   "main": "src/module.js",
   "scripts": {
-    "dev": "node --experimental-fetch src/module.js"
+    "build": "npm install cheerio && make lib/missing_id.so && node-gyp configure && node-gyp build",
+    "dev": "node --experimental-fetch ./src/module.js"
   },
+  "gypfile": true,
   "dependencies": {
-    "cheerio": "^1.0.0-rc.10"
+    "cheerio": "^1.0.0-rc.10",
+    "minimist": "^1.2.6"
   }
 }

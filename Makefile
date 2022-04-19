@@ -4,6 +4,7 @@ SRC_DIR := ./src
 DEP_DIR := ./dep
 BUILD_DIR  := ./build
 INCLUDE_DIR := ./include
+LIB_DIR := ./lib
 
 ACCUM_FILE := rolls-1
 # Replace it with where the libcsv directory is saved
@@ -13,7 +14,7 @@ LIBCSV_DIR := $${HOME}/libcsv-3.0.3
 INCLUDES := -I${LIBCSV_DIR}/include -I$(INCLUDE_DIR)
 
 # Making sure this does not get immediately computed. Use automatic dependency generation for header files as well
-CPPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$*.d
+CPPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$*.d -fPIC
 
 # Enable all warnings as errors except unused params and missing field initializers (library functions and initializers)
 CFLAGS := -O2 -Wall -Wextra -Wpedantic -g -ansi -Werror -Wno-error=unused-parameter -Wno-error=missing-field-initializers $(INCLUDES)
@@ -26,11 +27,15 @@ LDFLAGS := -L ${LIBCSV_DIR}/lib -Wl,-R,${LIBCSV_DIR}/lib # Statically link so ex
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 DEP_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
+LIB_FILES = $(LIB_DIR)/missing_id.so
 
-all : main
+all : main $(LIB_FILES)
 
 $(OBJ_FILES) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c $(DEP_DIR)/%.d | $(BUILD_DIR) $(DEP_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(LIB_FILES) : $(LIB_DIR)/%.so : $(BUILD_DIR)/%.o | $(LIB_DIR)
+	$(CC) -shared $(LDFLAGS) $< $(LDLIBS) -o $@
 
 $(DEP_FILES): ;
 
@@ -42,6 +47,7 @@ main : $(BUILD_DIR)/main.o $(BUILD_DIR)/dynamic_long_array.o $(BUILD_DIR)/missin
 # Creation of folders if they do not exist
 $(BUILD_DIR) : ; @mkdir -p $@
 $(DEP_DIR) : ; @mkdir -p $@
+$(LIB_DIR) : ; @mkdir -p $@
 
 setup:
 	@mkdir -p ./src ./build ./include
