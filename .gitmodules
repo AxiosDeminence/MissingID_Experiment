@@ -4,3 +4,6 @@
 [submodule "cheerio"]
 	path = cheerio
 	url = git@github.com:cheeriojs/cheerio.git
+[submodule "minimist"]
+	path = minimist
+	url = https://github.com/substack/minimist
