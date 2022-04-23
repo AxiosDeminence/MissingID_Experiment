@@ -13,6 +13,8 @@ int at_capacity(struct dynamic_long_array *dynamic_array);
 
 int extend_array(struct dynamic_long_array *dynamic_array);
 
+void free_long_dynamic_array(struct dynamic_long_array *dynamic_array);
+
 struct dynamic_long_array create_long_dynamic_array(size_t initial_capacity,
                                                     int *err_no);
 

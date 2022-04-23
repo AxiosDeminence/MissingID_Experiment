@@ -5,7 +5,8 @@
 #include "dynamic_long_array.h"
 #include "missing_id.h"
 
-/* Prints the gaps between IDs of a given formatted file. Assumes that each
+/**
+ * Prints the gaps between IDs of a given formatted file. Assumes that each
  * line, has the same number of features and is separated by the same delimiter.
  * Additionally assumes that the ID is the same feature and can be represented
  * as some integer.
@@ -23,7 +24,7 @@
  * eventually free the aforementioned block. In essence, it works.
  *
  * Requires GNU99 for <argp.h>
- */
+ **/
 
 const char *argp_program_version = "v0.1";
 const char *argp_program_bug_address = "juhmertena@gmail.com";
@@ -46,12 +47,14 @@ static struct argp_option options[] = {
 };
 
 struct arguments { 
-  /* We could technically make different quote and token characters for each
+  /**
+   * We could technically make different quote and token characters for each
    * input file like the columns, but I think that's more trouble than what it's
    * worth. It isn't impossible, but I'd like to imagine that the user has some
    * control over the format of the extracted data. In my intended use case, the
    * user will have control over the quote and delimiter characters for every
-   * file, but might not have ease of control over the ID column. */
+   * file, but might not have ease of control over the ID column.
+   **/
   unsigned char quote;
   unsigned char token;
   int ignore_headers;
@@ -88,10 +91,12 @@ parse_opt (int key, char *arg, struct argp_state *state) {
     case 'q': case 't':
     {
       char special_char;
-      /* Only accept one character strings (libcsv limitation). Binary data
+      /**
+       * Only accept one character strings (libcsv limitation). Binary data
        * allowed. Prevent use newline/carriage returns (needed to delimit rows).
        * Also prevent empty input. Due to limitations of argp, we will not check
-       * for redeclarations. */
+       * for redeclarations.
+       **/
       if (strlen(arg) != 1) {
         FreeArguments(arguments);
         argp_error(state, "Quote/Delimiter may not be empty");
@@ -125,8 +130,10 @@ parse_opt (int key, char *arg, struct argp_state *state) {
     case 'i':
     case ARGP_KEY_ARG:
     {
-      /* Try to open the file specified in the argument. If it does not exist
-       * then it is considered as an error. */
+      /**
+       * Try to open the file specified in the argument. If it does not exist
+       * then it is considered as an error.
+       **/
       FILE *file;
       if ((file = fopen(arg, "r")) == NULL) {
         FreeArguments(arguments);
@@ -134,8 +141,10 @@ parse_opt (int key, char *arg, struct argp_state *state) {
       }
       fclose(file);
 
-      /* The argument is on the stack, allowing us to just save the reference
-       * to the argument. */
+      /**
+       * The argument is on the stack, allowing us to just save the reference
+       * to the argument.
+       **/
       arguments->input = realloc(arguments->input,
           (arguments->input_file_length + 1) * sizeof(char *));
       arguments->input[arguments->input_file_length++] = arg;
@@ -143,8 +152,10 @@ parse_opt (int key, char *arg, struct argp_state *state) {
     }
     case 'c':
     {
-      /* Since arg is a pointer to the beginning of a string, then we can just
-       * use that and tokenize it. */
+      /**
+       * Since arg is a pointer to the beginning of a string, then we can just
+       * use that and tokenize it.
+       **/
       char *checker = strtok(arg, " ");
       while (checker != NULL) {
         long num = strtol(checker, &checker, 10);
@@ -169,9 +180,11 @@ parse_opt (int key, char *arg, struct argp_state *state) {
         argp_error(state, "Quote and token cannot be same character");
       }
 
-      /* If the columns were never specified, then set it here It's a lot
+      /**
+       * If the columns were never specified, then set it here It's a lot
        * easier to handle this for the default instead of at init so we don't
-       * need to write code to overwrite only the first instance. */
+       * need to write code to overwrite only the first instance.
+       **/
       if (arguments->column_specify_length == 0) {
         arguments->column_specify_length = 1;
         arguments->columns = calloc(1, sizeof(long));
@@ -199,8 +212,10 @@ parse_opt (int key, char *arg, struct argp_state *state) {
         }
       } else if (arguments->column_specify_length != 
           arguments->input_file_length) {
-        /* If number of specified columns is not equal to the number of input
-           files, then print error */
+        /**
+         * If number of specified columns is not equal to the number of input
+         * files, then print error
+         **/
         FreeArguments(arguments);
         argp_error(state, "Number of columns do not match number of input files");
       }
@@ -231,6 +246,8 @@ int main(int argc, char *argv[]) {
         dynamic_array.len));
 
   FreeArguments(&arguments);
+
+  free_long_dynamic_array(&dynamic_array);
 
   exit(EXIT_SUCCESS);
 }

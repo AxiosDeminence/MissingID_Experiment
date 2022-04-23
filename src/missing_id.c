@@ -5,7 +5,8 @@
 #include "csv.h"
 
 long missing_number(long *array, size_t len) {
-  /* Define n = array_len and [-1, k] to be the range of elements.
+  /**
+   * Define n = array_len and [-1, k] to be the range of elements.
    * We allow [-1, 0] to be in the range for different ways to track missing IDs
    * but are not considered valid IDs for the missing number
    * Solution requirements:
@@ -34,7 +35,7 @@ long missing_number(long *array, size_t len) {
    *   that the smallest missing positive number was n_{pos} + 1;
    * - We can then reiterate through arr_{pos} and then set them back to
    *   positive. This takes O(1) space, O(n) time.
-   */
+   **/
   
   size_t i = 0;
   size_t first_pos = 0;
@@ -44,8 +45,10 @@ long missing_number(long *array, size_t len) {
     if (array[i] < 1) {
       long tmp = array[i];
       array[i] = array[first_pos];
-      /* We increment the first_pos after making the last_non_pos or first_pos-1
-       * into a negative. */
+      /**
+       * We increment the first_pos after making the last_non_pos or first_pos-1
+       * into a negative.
+       **/
       array[first_pos++] = tmp;
     }
  }
@@ -54,7 +57,8 @@ long missing_number(long *array, size_t len) {
   for (i = first_pos; i < len; ++i) {
     /* Elem should always be at least 1. */
     long elem = (array[i] > 0) ? array[i] : -array[i];
-    /* An interesting way to keep the shift active*/
+    /* An interesting way to keep the shift active */
+
     /* Keep the index within the index range */
     if (elem + first_pos - 1 < len && array[elem + first_pos - 1] > 0) {
       array[elem + first_pos - 1] *= -1;
@@ -63,8 +67,10 @@ long missing_number(long *array, size_t len) {
 
   minimum_missing_positive = len - first_pos + 1;
   for (i = first_pos; i < len; ++i) {
-    /* If the elmeent at index i is still positive, it was not found in the
-     * array */
+    /**
+     * If the elmeent at index i is still positive, it was not found in the
+     * array
+     **/
     if (array[i] > 0 && minimum_missing_positive == len - first_pos + 1) {
       minimum_missing_positive = i - first_pos + 1;
     }
@@ -76,8 +82,10 @@ long missing_number(long *array, size_t len) {
   return minimum_missing_positive;
 } 
 
-/* We use the strtol function here which requires a null terminating character.
- * Therefore, do NOT use it without specifying the CSV_APPEND_NULL option */
+/**
+ * We use the strtol function here which requires a null terminating character.
+ * Therefore, do NOT use it without specifying the CSV_APPEND_NULL option
+ **/
 void field_callback(void *s, size_t len, void *data) {
   struct parser_info *info = (struct parser_info *)data;
   int retval;
@@ -86,9 +94,11 @@ void field_callback(void *s, size_t len, void *data) {
     return;
   }
 
-  /* Technically if ignore_headers is not set, then it will still work since
+  /**
+   * Technically if ignore_headers is not set, then it will still work since
    * strtol will return 0 when it reaches the header as long as the header does
-   * not start with a numeric value */
+   * not start with a numeric value\
+   **/
   retval = append(strtol((char *)s, NULL, 10), info->array);
 
   if (retval != 0) {
@@ -98,8 +108,10 @@ void field_callback(void *s, size_t len, void *data) {
 }
 
 void record_callback(int c, void *data) {
-  /* c here is either the line terminator unsigned char or -1 if the final
-   * record was never line terminated, either way it isn't used */
+  /**
+   * c here is either the line terminator unsigned char or -1 if the final
+   * record was never line terminated, either way it isn't used
+   **/
   struct parser_info *info = (struct parser_info *)data;
   info->past_header = 1;
   info->current_column = 0;
@@ -151,6 +163,9 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
         return dynamic_array;
       }
     }
+    fclose(file);
   }
+
+  csv_free(&p);
   return dynamic_array;
 }

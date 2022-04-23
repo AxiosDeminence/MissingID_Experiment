@@ -41,6 +41,10 @@ int extend_array(struct dynamic_long_array *dynamic_array) {
   return 0;
 }
 
+void free_long_dynamic_array(struct dynamic_long_array *dynamic_array) {
+  free(dynamic_array->array);
+}
+
 struct dynamic_long_array create_long_dynamic_array(size_t initial_capacity,
                                                     int *err_no) {
   long *underlying_array = calloc(initial_capacity, sizeof(long));
