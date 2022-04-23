@@ -1,8 +1,10 @@
 build/
+dep/
+lib/
+
 sample-data/
 libcsv_binaries/
 node_modules/
-lib/
 
 # Different executables
 testbench
