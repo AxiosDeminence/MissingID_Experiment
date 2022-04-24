@@ -240,6 +240,8 @@ int main(int argc, char *argv[]) {
       arguments.columns, arguments.input_file_length, arguments.ignore_headers,
       arguments.quote, arguments.token, 100, &ret_val);
   if (ret_val != 0) {
+    FreeArguments(&arguments);
+    free_long_dynamic_array(&dynamic_array);
     exit(EXIT_FAILURE);
   }
   printf("Missing id: %ld\n", missing_number(dynamic_array.array,

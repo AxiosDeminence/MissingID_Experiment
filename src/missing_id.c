@@ -152,6 +152,8 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
     if (file == NULL) {
       fprintf(stderr, "Error opening file: %s\n", filenames[i]);
       *err_no = 2;
+      fclose(file);
+      csv_free(&p);
       return dynamic_array;
     }
     while ((bytes_read=fread(buf, 1, 1024, file)) > 0) {
@@ -160,6 +162,8 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
         fprintf(stderr, "Error while parsing file: %s\n",
             csv_strerror(csv_error(&p)));
         *err_no = 3;
+        fclose(file);
+        csv_free(&p);
         return dynamic_array;
       }
     }
