@@ -16,10 +16,11 @@ const crawl_interval_variance = 45 * 1000;
 const id_query_url = 'http://cydel.net/idlook.php';
 const character_query_url = 'http://cydel.net/dicelook.php';
 
-// CSS Selector when trying to find the owner of a roll queried by ID
-const character_selector =
-  'body > center > table:nth-of-type(2) > tbody > tr:nth-child(2) > ' +
-  'td:nth-child(6)';
+// CSS Selectors to select the table and relevant attributes in the table
+// Character and id selectors must be used in context of the table
+const table_selector = 'body > center > table:nth-of-type(2) > tbody';
+const character_selector = 'tr:nth-child(2) > td:nth-child(6)';
+const rolls_selector = 'tr:not(:nth-child(1))';
 
 // Headers used for the POST Query
 const headers = {
@@ -81,50 +82,35 @@ function extractCharacterFromIDQuery(response) {
   // and will fix some malformed HTML)
   const $ = cheerio.load(response);
 
-  // We need to send back these two responses. We use .html() here since
-  // some characters may have html in them: such as the "Pacman ghosts"
-  // when no character is set by the user. The tag_in_name will be useful
-  // for a later CSS selector.
-  return {
-    character_name: $(character_selector).html(),
-    tag_in_name: $(character_selector).get(0)?.childNodes.length === 2,
-  };
+  // We use .html() here since some characters may have html in them: such as
+  // the "Pacman ghosts".
+  return $(table_selector).find(character_selector).html();
 }
 
 /**
  * Extract all rolls from a query using the character name and format them into
  * a DSV format.
  * @param {text} response The HTML response of the query. May be malformed.
- * @param {boolean} tag_in_name Whether the character name had a valid HTML tag.
  * @param {quote: string, delimiter: string} format_opts An object
  *     containing options for formatting the DSV
  * @param {Array<BigInt64>} running_ids A mutable array of the found ids
  * @returns {dsv} The rolls formatted in the DSV.
  */
-function createDSVFromCharacterQuery(
-  response,
-  tag_in_name,
-  format_opts,
-  running_ids
-) {
+function createDSVFromCharacterQuery(response, format_opts, running_ids) {
   // Selects the table to iterate the rows of
   const quote_token = format_opts['quote'];
   const delimiter_token = format_opts['delimiter'];
   const quote_regex = RegExp(quote_token, 'g');
 
-  const table_selector =
-    'body > center > table:nth-child(' +
-    (tag_in_name + 3) +
-    ') > tbody > ' +
-    'tr:not(:nth-child(1))';
-
   const $ = cheerio.load(response);
+
   let dsv = '';
   let col_no = 0;
 
   $(table_selector)
+    .find(rolls_selector)
     .children('td')
-    .each((idx, elem) => {
+    .each((_idx, elem) => {
       let builder;
       // This should let us skip row 0, col 0 from generating newline
       // Doing a switch case would complicate the issue a lot since we don't
@@ -194,28 +180,20 @@ async function crawl(id, format_opts, running_ids) {
   const id_query_results = extractCharacterFromIDQuery(html_response);
 
   /* Character will be undefined if no roll with ID was found*/
-  if (typeof id_query_results.character_name === 'undefined') {
+  if (typeof id_query_results === 'undefined') {
     throw `Error: Roll with ID ${id} not found.`;
   }
 
   try {
-    html_response = await queryRolls(
-      'character',
-      id_query_results.character_name
-    );
+    html_response = await queryRolls('character', id_query_results);
   } catch (e) {
     console.error('Error: ', e);
     throw `Error when fetching rolls with character ${character}`;
   }
 
   return {
-    character: id_query_results.character_name,
-    dsv: createDSVFromCharacterQuery(
-      html_response,
-      id_query_results.tag_in_name,
-      format_opts,
-      running_ids
-    ),
+    character: id_query_results,
+    dsv: createDSVFromCharacterQuery(html_response, format_opts, running_ids),
   };
 }
 
