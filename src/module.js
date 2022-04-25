@@ -351,19 +351,21 @@ function main() {
           ? path.resolve(user_args['output'], crawl_results['character'])
           : user_args['output'];
       previous_missing_id = missing_id;
-      // If the file does not exist, then we want to append headers
       fs.promises
         .access(output_file, fs.constants.F_OK)
         .catch((err) => {
+          // If the file does not exist, then we want to append headers
           fs.appendFile(output_file, dsv_header, (err) => {
             if (err) throw err;
           });
         })
         .finally(() => {
+          // After appending headers, we append all of the results of the file
           fs.appendFile(output_file, crawl_results['dsv'], (err) => {
             if (err) throw err;
           });
         });
+      // TODO: Add in something to vary the crawl_interval
       workflow = setTimeout(work, crawl_interval);
       console.log(`iteration: ${++iteration} complete`);
     } catch (e) {

@@ -11,7 +11,7 @@ ACCUM_FILE := rolls-1
 LIBCSV_DIR := ./libcsv-3.0.3
 
 # Add libcsv and include directory
-INCLUDES := -I$(INCLUDE_DIR) -I(LIBCSV_DIR)
+INCLUDES := -I$(INCLUDE_DIR) -I$(LIBCSV_DIR)
 
 # Making sure this does not get immediately computed. Use automatic dependency generation for header files as well
 CPPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$(@F).d

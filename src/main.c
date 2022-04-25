@@ -36,8 +36,8 @@ static const char arg_docs[] = "missing-id-lister [options] [FILES...]";
 
 /*https://www.gnu.org/software/libc/manual/html_node/Argp-Option-Vectors.html*/
 static struct argp_option options[] = {
-  { "quote", 't', "QUOTE", 0, "Quote character (default \") for the files"},
-  { "token", 't', "DELIMITER", 0, "Delimiter (default commas) in the files" },
+  { "quote", 'q', "QUOTE", 0, "Quote character (default \") for the files"},
+  { "delimiter", 'd', "DELIMITER", 0, "Delimiter (default tab) in the files" },
   { "headers", 'h', 0, 0, "Ignore headers in files (default false)" },
   { "output", 'o', "OUTPUT_FILE", 0, "File to output to" },
   { "input", 'i', "INPUT_FILE(s)", 0, "File(s) to search through" },
@@ -88,7 +88,7 @@ parse_opt (int key, char *arg, struct argp_state *state) {
       arguments->input_file_length = 0;
       arguments->column_specify_length = 0;
       break;
-    case 'q': case 't':
+    case 'q': case 'd':
     {
       char special_char;
       /**
