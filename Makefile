@@ -8,34 +8,38 @@ LIB_DIR := ./lib
 
 ACCUM_FILE := rolls-1
 # Replace it with where the libcsv directory is saved
-LIBCSV_DIR := $${HOME}/libcsv-3.0.3
+LIBCSV_DIR := ./libcsv-3.0.3
 
 # Add libcsv and include directory
-INCLUDES := -I${LIBCSV_DIR}/include -I$(INCLUDE_DIR)
+INCLUDES := -I$(INCLUDE_DIR) -I(LIBCSV_DIR)
 
 # Making sure this does not get immediately computed. Use automatic dependency generation for header files as well
-CPPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$*.d -fPIC
+CPPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$(@F).d
 
 # Enable all warnings as errors except unused params and missing field initializers (library functions and initializers)
 CFLAGS := -O2 -Wall -Wextra -Wpedantic -g -ansi -Werror -Wno-error=unused-parameter -Wno-error=missing-field-initializers $(INCLUDES)
 
 # Linking libraries for every file does not actually do any harm since if the library is not used, it is not added.
 LDLIBS := -lcsv # Link libraries for final compilation
-LDFLAGS := -L ${LIBCSV_DIR}/lib -Wl,-R,${LIBCSV_DIR}/lib # Statically link so executables can be moved and link files as needed
+LDFLAGS := -L $(LIB_DIR) -Wl,-R,$(LIB_DIR) # Statically link so executables can be moved and link files as needed
 
 # Different
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-DEP_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(DEP_DIR)/%.d)
-LIB_FILES = $(LIB_DIR)/missing_id.so
+LIB_FILES = $(LIB_DIR)/missing_id.so $(LIB_DIR)/dynamic_long_array.so
+DEP_FILES := $(OBJ_FILES:$(BUILD_DIR)/%.o=$(DEP_DIR)/%.o.d)
+DEP_FILES += $(LIB_FILES:$(LIB_DIR)/%.so=$(DEP_DIR)/%.so.d)
 
-all : main $(LIB_FILES)
+all : $(LIB_FILES) $(LIB_DIR)/libcsv.so main
 
-$(OBJ_FILES) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c $(DEP_DIR)/%.d | $(BUILD_DIR) $(DEP_DIR)
+$(OBJ_FILES) : $(BUILD_DIR)/%.o : $(SRC_DIR)/%.c $(DEP_DIR)/%.o.d | $(BUILD_DIR) $(DEP_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-$(LIB_FILES) : $(LIB_DIR)/%.so : $(BUILD_DIR)/%.o | $(LIB_DIR)
-	$(CC) -shared $(LDFLAGS) $< $(LDLIBS) -o $@
+$(LIB_DIR)/libcsv.so : $(LIBCSV_DIR)/libcsv.c | $(LIB_DIR) $(DEP_DIR)
+	$(CC) -shared $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(LIB_FILES) : $(LIB_DIR)/%.so : $(SRC_DIR)/%.c $(DEP_DIR)/%.so.d | $(LIB_DIR) $(DEP_DIR)
+	$(CC) -shared -fPIC $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(DEP_FILES): ;
 
@@ -54,7 +58,9 @@ setup:
 	@libcsv-3.0.3/configure && make -C 
 
 clean:
-	@rm -r ./build/*
+	@rm -rf ./build/
+	@rm -rf ./lib/
+	@rm -rf ./dep/
 
 -include $(DEP_FILES)
 
