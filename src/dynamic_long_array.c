@@ -27,25 +27,28 @@ int extend_array(struct dynamic_long_array *dynamic_array) {
                     "implementation of size_t causing an overflow\n",
                     dynamic_array->capacity);
     return -1;
+  } else if (dynamic_array->capacity == 0) {
+    dynamic_array->capacity = 1;
   }
+
   dynamic_array->capacity *= 2;
   new_ptr = realloc(dynamic_array->array,
       sizeof(long) * dynamic_array->capacity);
   if (new_ptr == NULL) {
     /* If there were some issue with expanding the dynamic array */
     fprintf(stderr, "Error reallocating dynamic long array with new capacity"
-                    "%lu\n", dynamic_array->capacity);
+                    " %lu\n", dynamic_array->capacity);
     return 1;
   }
   dynamic_array->array = new_ptr;
   return 0;
 }
 
-void free_long_dynamic_array(struct dynamic_long_array *dynamic_array) {
+void free_dynamic_long_array(struct dynamic_long_array *dynamic_array) {
   free(dynamic_array->array);
 }
 
-struct dynamic_long_array create_long_dynamic_array(size_t initial_capacity,
+struct dynamic_long_array create_dynamic_long_array(size_t initial_capacity,
                                                     int *err_no) {
   long *underlying_array = calloc(initial_capacity, sizeof(long));
   struct dynamic_long_array dynamic_array;

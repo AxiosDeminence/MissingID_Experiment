@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "missing_id.h"
 #include "dynamic_long_array.h"
 #include "csv.h"
@@ -87,11 +89,16 @@ long missing_number(long *array, size_t len) {
  * Therefore, do NOT use it without specifying the CSV_APPEND_NULL option
  **/
 void field_callback(void *s, size_t len, void *data) {
-  struct parser_info *info = (struct parser_info *)data;
   int retval;
+  struct parser_info *info = (struct parser_info *)data;
+  /* Potential concern?: overflow of size_t */
+  char *str;
   if ((info->ignore_headers && !info->past_header) ||
        info->current_column++ != info->id_column) {
     return;
+  } else if ((str = calloc(len+1, sizeof(char))) == NULL) {
+    fprintf(stderr, "Error occurred while allocating string\n");
+    exit(EXIT_FAILURE);
   }
 
   /**
@@ -99,10 +106,13 @@ void field_callback(void *s, size_t len, void *data) {
    * strtol will return 0 when it reaches the header as long as the header does
    * not start with a numeric value\
    **/
-  retval = append(strtol((char *)s, NULL, 10), info->array);
+  strncpy(str, (char *) s, len);
+  retval = append(strtol(str, NULL, 10), info->array);
+  free(str);
 
   if (retval != 0) {
-    fprintf(stderr, "Some error occurred while reading a field: %d", retval);
+    free_dynamic_long_array(info->array);
+    fprintf(stderr, "Some error occurred while reading a field: %d\n", retval);
     exit(EXIT_FAILURE);
   }
 }
@@ -126,7 +136,7 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
   size_t bytes_read, i;
 
   *err_no = 0;
-  dynamic_array = create_long_dynamic_array(starting_capacity, err_no);
+  dynamic_array = create_dynamic_long_array(starting_capacity, err_no);
   if (*err_no != 0) {
     return dynamic_array;
   }
@@ -134,6 +144,7 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
   if (csv_init(&p, CSV_STRICT & CSV_APPEND_NULL & CSV_EMPTY_IS_NULL) != 0) {
     fprintf(stderr, "Error creating csv parser\n");
     *err_no = 1;
+    return dynamic_array;
   }
   csv_set_delim(&p, token);
   csv_set_quote(&p, quote);
@@ -152,7 +163,6 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
     if (file == NULL) {
       fprintf(stderr, "Error opening file: %s\n", filenames[i]);
       *err_no = 2;
-      fclose(file);
       csv_free(&p);
       return dynamic_array;
     }
@@ -168,6 +178,8 @@ struct dynamic_long_array compile_ids_from_files(const char* const* filenames,
       }
     }
     fclose(file);
+    csv_fini(&p, field_callback, record_callback, &parser_info);
+    csv_free(&p);
   }
 
   csv_free(&p);

@@ -79,7 +79,7 @@ parse_opt (int key, char *arg, struct argp_state *state) {
   switch (key) {
     case ARGP_KEY_INIT:
       arguments->quote = '"';
-      arguments->token = ',';
+      arguments->token = '\t';
       arguments->ignore_headers = 0;
       arguments->output = NULL;
 
@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
       arguments.quote, arguments.token, 100, &ret_val);
   if (ret_val != 0) {
     FreeArguments(&arguments);
-    free_long_dynamic_array(&dynamic_array);
+    free_dynamic_long_array(&dynamic_array);
     exit(EXIT_FAILURE);
   }
   printf("Missing id: %ld\n", missing_number(dynamic_array.array,
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
 
   FreeArguments(&arguments);
 
-  free_long_dynamic_array(&dynamic_array);
+  free_dynamic_long_array(&dynamic_array);
 
   exit(EXIT_SUCCESS);
 }
