@@ -4,7 +4,7 @@
   "main": "src/module.js",
   "scripts": {
     "build": "npm install cheerio && make lib/missing_id.so && node-gyp configure && node-gyp build",
-    "dev": "node --experimental-fetch ./src/module.js"
+    "dev": "node --experimental-fetch ./src/module.js --base-dir ./sample-data/"
   },
   "gypfile": true,
   "dependencies": {
